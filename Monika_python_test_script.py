@@ -12,7 +12,9 @@ if __name__ == "__main__":
     # from google.oauth2 import service_account
 
     scopes = ['https://www.googleapis.com/auth/drive']
-    credentials = ServiceAccountCredentials.from_json_keyfile_name('/Users/monikapanda/aodocs/AODocs/monika-aodocs-f0841238db51.json', scopes)
+    key_path = os.path.join(os.path.dirname(__file__), 'monika-aodocs-f0841238db51.json')
+    print(key_path)
+    credentials = ServiceAccountCredentials.from_json_keyfile_name(key_path, scopes)
 
     http_auth = credentials.authorize(Http())
     drive = build('drive', 'v3', http=http_auth)
@@ -22,12 +24,12 @@ if __name__ == "__main__":
         'mimeType': 'application/vnd.google-apps.folder'
     }
 
-    file = drive.files().create(body=file_metadata,
-                                    fields='id').execute()
+    # file = drive.files().create(body=file_metadata,
+    #                                 fields='id').execute()
 
-    print ('Folder ID: %s' % file.get('id'))
+    # print ('Folder ID: %s' % file.get('id'))
 
-    # request = drive.files().list().execute()
-    # files = request.get('items', [])
-    # for f in files:
-    #     print(f)
+    request = drive.files().list().execute()
+    files = request.get('folders', [])
+    for f in files:
+        print(f)
