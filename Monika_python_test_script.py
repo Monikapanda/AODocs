@@ -1,4 +1,3 @@
-import requests # To connect to Rest api
 import json # For Json format
 import sys
 import os # misc operations
