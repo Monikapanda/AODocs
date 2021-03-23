@@ -5,6 +5,7 @@ import os # misc operations
 from apiclient.discovery import build
 from oauth2client.service_account import ServiceAccountCredentials
 from httplib2 import Http
+from googleapiclient.http import MediaFileUpload
 
 
 if __name__ == "__main__":
@@ -19,57 +20,51 @@ if __name__ == "__main__":
     http_auth = credentials.authorize(Http())
     drive = build('drive', 'v3', http=http_auth)
 
-    file_metadata = {
+    # create folder
+    folder_metadata = {
         'name': 'monika_test',
         'mimeType': 'application/vnd.google-apps.folder'
     }
 
-    file = drive.files().create(body=file_metadata, fields='id').execute()
+    folder = drive.files().create(body=folder_metadata, fields='id').execute()
 
-    print ('Folder ID: %s' % file.get('id'))
-    fileid = file.get('id')
-
-    #getting the details of the folder
-    base_url = "https://www.googleapis.com/drive/v3/"
-    request_url = base_url+'files/'+str(fileid)
-    response = requests.get(request_url)
-
-    if response.status_code != 200:
-        oResult = 'The Test Case create folder is FAILED with the Response Status Code as: '+str(response.status_code)+'.\nReason of failure: '+response.reason
-    else:
-        print('nada')
+    print ('Folder ID: %s' % folder.get('id'))
+    folder_id = folder.get('id')
 
 
+    # create file
+    file_metadata = {
+        'name': 'test_file_1.txt',
+        'parents': folder_id
+    }
 
-    # request = drive.files().list().execute()
-    # files = request.get('items', [])
-    # for f in files:
-    #     print(f)
+    test_file_path = os.path.join(os.path.dirname(__file__), 'test_file_1.txt')
+    print(test_file_path)
 
-    #creating permission for a user
-    request_url = base_url+'files/'+str(fileid)+'/permissions'
-    myobj = {'role':'owner', 'type':'user', 'emailAddress':'test.aodocs3@gmail.com'}
-    #myjson = {'requestId': 'new'}
-    response = requests.post(request_url, data = myobj)
+    media = MediaFileUpload(test_file_path,
+                            mimetype='text/plain',
+                            resumable=True)
+    file = drive.files().create(body=file_metadata,
+                                        media_body=media,
+                                        fields='id').execute()
+    print ('File ID: %s' % file.get('id'))
+    file_id = file.get('id')
 
-    if response.status_code != 200:
-                oResult = 'The Test Case create permission is FAILED with the Response Status Code as: '+str(response.status_code)+'.\nReason of failure: '+response.reason
+    #create permission for test.aodocs3@gmail.com
+    permission_metadata = {
+        'role': 'writer',
+        'type': 'user',
+        'emailAddress': 'test.aodocs3@gmail.com'
+    }
+    permission = drive.permissions().create(body=permission_metadata, fields='id', fileId=folder_id).execute()
+    print ('Permission ID: %s' % permission.get('id'))
+    permission_id = permission.get('id')
 
-    #creating a file in folder
-    request_url = base_url+'fields'
-    myobj = {'name': 'monikafile'}
-    myjson = {'uploadType': 'media'}
-    response = requests.post(request_url, json = myjson, data= myobj)
-
-    if response.status_code != 200:
-                oResult = 'The Test Case create file is FAILED with the Response Status Code as: '+str(response.status_code)+'.\nReason of failure: '+response.reason
-
-    #checking for permission
-    request_url = base_url+'files/'+str(fileid)+'/permissions'
-    response = requests.get(request_url)
-    print(response.text)
-
-
-    request_url = base_url+'files/'+str(fileid)+'/permissions/'+str(permissionid)
-    if response.status_code != 200:
-                oResult = 'The Test Case permission check is FAILED with the Response Status Code as: '+str(response.status_code)+'.\nReason of failure: '+response.reason
+    #checking for permissions for the folder
+    getfilecontent = drive.files().get(fields='*', fileId=file_id).execute()
+    sharedemail = print(getfilecontent['permissions'][0]['emailAddress'])
+    for i in getfilecontent['permissions']:
+        if i['emailAddress'] == 'test.aodocs3@gmail.com':
+         print('The email address test.aodocs3@gmail.com has been successfully granted permission to the file')
+        if i['emailAddress'] != 'techtest-qa@test.aodocs.com':
+         print('The email address test.aodocs3@gmail.com has not been granted permission to the file')   
